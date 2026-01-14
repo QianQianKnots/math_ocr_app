@@ -28,11 +28,38 @@
 import os
 from dotenv import load_dotenv
 
-# 加载环境变量
+# 加载环境变量（本地开发用）
 load_dotenv()
+
+# 尝试导入 Streamlit secrets（云端部署用）
+try:
+    import streamlit as st
+
+    _HAS_STREAMLIT = True
+except ImportError:
+    _HAS_STREAMLIT = False
 
 # 模块公共接口
 __all__ = ["Config"]
+
+
+def _get_secret(key: str, default: str = "") -> str:
+    """
+    获取配置值，优先级：
+    1. Streamlit Cloud secrets (st.secrets)
+    2. 环境变量 (.env 文件)
+    3. 默认值
+    """
+    # 优先使用 Streamlit secrets（云端部署）
+    if _HAS_STREAMLIT:
+        try:
+            if key in st.secrets:
+                return str(st.secrets[key])
+        except Exception:
+            pass
+
+    # 回退到环境变量（本地开发）
+    return os.getenv(key, default)
 
 
 class Config:
@@ -41,10 +68,14 @@ class Config:
 
     所有配置项都是类属性，通过 Config.XXX 访问。
     带有 @classmethod 的是工具方法。
+
+    支持两种配置来源：
+    - 本地开发：.env 文件
+    - 云端部署：Streamlit Cloud secrets
     """
 
     # ==================== 运行模式 ====================
-    DEBUG_MODE: bool = os.getenv("DEBUG", "false").lower() == "true"
+    DEBUG_MODE: bool = _get_secret("DEBUG", "false").lower() == "true"
 
     # ==================== 文件上传配置 ====================
     MAX_UPLOAD_FILES: int = 5  # 最多上传图片数量
@@ -73,8 +104,13 @@ class Config:
     # ==================== API 密钥管理 ====================
     @classmethod
     def get_api_key(cls) -> str | None:
-        """获取 API 密钥"""
-        return os.getenv("API_KEY")
+        """
+        获取 API 密钥
+
+        优先级：Streamlit secrets > 环境变量
+        """
+        key = _get_secret("API_KEY", "")
+        return key if key else None
 
     @classmethod
     def validate_api_key(cls) -> tuple[bool, str]:
@@ -86,12 +122,14 @@ class Config:
         api_key = cls.get_api_key()
 
         if not api_key:
-            return False, "未找到 API 密钥。请在 .env 文件中设置 API_KEY=your_key"
+            return (
+                False,
+                "未找到 API 密钥。请在 .env 文件或 Streamlit secrets 中设置 API_KEY",
+            )
 
         if len(api_key) < 10:
             return False, "API 密钥格式不正确（长度过短）"
 
-        # 可以添加更多验证逻辑
         return True, ""
 
     @classmethod
