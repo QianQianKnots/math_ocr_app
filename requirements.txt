@@ -1,0 +1,21 @@
+# ============================================
+# Math OCR App - Python 依赖清单
+# ============================================
+# 安装方法: pip install -r requirements.txt
+
+# ---------- Web 框架 ----------
+streamlit>=1.32.0
+
+# ---------- Streamlit 组件 ----------
+streamlit-ace>=0.1.1
+
+# ---------- 图片处理 ----------
+Pillow>=10.0.0
+
+# ---------- 环境变量管理 ----------
+python-dotenv>=1.0.0
+
+# ---------- 可选：PDF 生成需要系统安装 LaTeX ----------
+# Windows: 安装 MiKTeX (https://miktex.org/)
+# macOS: brew install --cask mactex
+# Linux: sudo apt install texlive-full
