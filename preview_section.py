@@ -37,6 +37,7 @@ from pathlib import Path
 from config import Config
 from latex_utils import parse_latex_blocks, process_latex_input
 from analytics import log_event
+from lang import get_text
 
 # 模块公共接口
 __all__ = ["render_preview_section"]
@@ -184,7 +185,8 @@ def _latex_text_to_markdown(latex_text):
 
 def render_preview_section():
     """渲染公式预览部分"""
-    st.header("✨ 公式预览")
+    L = get_text
+    st.header(L("preview_header"))
 
     # 获取原始 LaTeX 代码
     raw_latex = st.session_state.get("latex_output", "").strip()
@@ -200,10 +202,7 @@ def render_preview_section():
         processed_latex, _ = _extract_renderable_content(latex_for_preview)
 
         if is_full_doc:
-            st.warning(
-                "⚠️ 检测到完整的 LaTeX 文档。**预览无法完美还原格式**（如居中、字体大小等），"
-                "仅供参考。**完整排版效果请以 PDF 为准**。"
-            )
+            st.warning(L("preview_warning"))
 
         # 标题和下载按钮在同一行
         col_title, col_download = st.columns([10, 1])
@@ -215,8 +214,8 @@ def render_preview_section():
             if "pdf_data" not in st.session_state:
                 st.session_state.pdf_data = None
 
-            if st.button("📥 PDF", key="download_pdf_btn", help="下载渲染后的PDF"):
-                with st.spinner("正在生成PDF..."):
+            if st.button(L("pdf_btn"), key="download_pdf_btn"):
+                with st.spinner(L("pdf_generating")):
                     # 使用原始 LaTeX 代码生成 PDF（不是处理后的）
                     # 如果是完整文档，直接使用；否则用自动包装的
                     st.session_state.pdf_data = _generate_pdf(latex_for_pdf)
@@ -243,19 +242,19 @@ def render_preview_section():
 
             if st.session_state.pdf_data:
                 st.download_button(
-                    label="下载PDF",
+                    label=L("pdf_download_btn"),
                     data=st.session_state.pdf_data,
                     file_name="formula.pdf",
                     mime="application/pdf",
                     key="pdf_download",
                 )
             elif st.session_state.get("pdf_generation_failed", False):
-                st.caption("需要LaTeX")
+                st.caption(L("pdf_need_latex"))
 
         # 查看 PDF 源码（放在列外面，全宽显示）
-        with st.expander("🔍 查看 PDF 源码", expanded=False):
+        with st.expander(L("pdf_source_title"), expanded=False):
             st.code(latex_for_pdf, language="latex")
-            st.caption(f"共 {len(latex_for_pdf)} 字符")
+            st.caption(L("pdf_source_chars", count=len(latex_for_pdf)))
 
         # 添加CSS样式确保LaTeX渲染能够适应宽度，并去掉公式边框
         st.markdown(
@@ -364,7 +363,7 @@ def render_preview_section():
                     text_content = _latex_text_to_markdown(content)
                     st.markdown(text_content)
     else:
-        st.info("👈 请先上传图片并点击识别按钮")
+        st.info(get_text("preview_prompt"))
 
 
 def _generate_pdf(latex_document):

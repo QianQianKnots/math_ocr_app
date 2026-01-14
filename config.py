@@ -79,8 +79,8 @@ class Config:
 
     # ==================== 文件上传配置 ====================
     MAX_UPLOAD_FILES: int = 5  # 最多上传图片数量
-    MAX_FILE_SIZE_MB: int = 10  # 单个文件最大大小（MB）
-    MAX_IMAGE_DIMENSION: int = 4096  # 图片最大尺寸（像素）
+    MAX_FILE_SIZE_MB: int = 20  # 单个文件最大大小（MB）- 放宽限制
+    MAX_IMAGE_DIMENSION: int = 8192  # 图片最大尺寸（像素）- 放宽限制
     ALLOWED_EXTENSIONS: list[str] = ["png", "jpg", "jpeg"]
 
     # ==================== 图片处理配置 ====================

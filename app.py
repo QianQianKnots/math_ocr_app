@@ -4,26 +4,7 @@
 
 Math OCR App 的入口文件，负责整合各模块并协调数据流。
 
-应用结构：
-    ┌─────────────────────────────────────────┐
-    │            上传手稿区域                  │
-    │  (upload_section.py)                    │
-    ├─────────────────────────────────────────┤
-    │         [🚀 开始识别按钮]                │
-    ├───────────────┬─────────────────────────┤
-    │  LaTeX 编辑器  │      公式预览           │
-    │  (1/3 宽度)    │      (2/3 宽度)         │
-    │ latex_editor  │   preview_section       │
-    └───────────────┴─────────────────────────┘
-
-数据流：
-    用户上传图片 → OCR 识别 → LaTeX 代码 → 预览/PDF
-
-核心状态：
-    st.session_state.latex_output: 当前 LaTeX 代码
-
-启动检查：
-    - API 密钥验证
+支持中英文双语切换。
 
 作者: Math OCR App
 最后更新: 2026-01-14
@@ -40,6 +21,7 @@ from latex_editor import render_latex_editor
 from preview_section import render_preview_section
 from usage_tracker import can_use_api, get_usage_info, increment_usage
 from analytics import log_event, ANALYTICS_ENABLED
+from lang import get_text, render_language_selector
 
 # ============================================================
 # 页面配置
@@ -50,7 +32,15 @@ st.set_page_config(
     layout="wide",
 )
 
-st.title("一键式数学手稿 OCR")
+# ============================================================
+# 语言选择（侧边栏）
+# ============================================================
+render_language_selector()
+
+# 简化获取文本的函数
+L = get_text
+
+st.title(L("app_title"))
 
 # ============================================================
 # 数据收集告知
@@ -60,20 +50,8 @@ if ANALYTICS_ENABLED:
         st.session_state.analytics_noticed = False
 
     if not st.session_state.analytics_noticed:
-        with st.expander("📊 数据收集说明", expanded=False):
-            st.info(
-                """
-                **本应用会收集匿名使用数据，仅用于优化和调试项目。**
-                
-                ✅ **收集的数据**：使用时间、操作类型、图片数量、处理结果
-                
-                ❌ **不会收集**：个人身份、图片内容、LaTeX 代码、API 密钥
-                
-                📁 数据存储在本地 `analytics_data.json` 文件中
-                
-                🚫 如需禁用，在 `.env` 文件中添加 `DISABLE_ANALYTICS=true`
-                """
-            )
+        with st.expander(L("analytics_title"), expanded=False):
+            st.info(L("analytics_content"))
         st.session_state.analytics_noticed = True
 
     # 记录应用启动事件（每个会话只记录一次）
@@ -86,8 +64,8 @@ if ANALYTICS_ENABLED:
 # ============================================================
 api_valid, api_error = Config.validate_api_key()
 if not api_valid:
-    st.error(f"⚠️ 配置错误：{api_error}")
-    st.info("请创建 `.env` 文件并添加：\n```\nAPI_KEY=your_api_key_here\n```")
+    st.error(L("error_config", error=api_error))
+    st.info(L("error_config_hint"))
     st.stop()
 
 # ============================================================
@@ -103,9 +81,9 @@ try:
     uploaded_files, images = render_upload_section()
 except Exception as e:
     if Config.DEBUG_MODE:
-        st.error(f"上传模块出错：{str(e)}")
+        st.error(f"Upload error: {str(e)}")
     else:
-        st.error("图片上传处理失败，请检查图片格式后重试")
+        st.error(L("error_upload"))
     uploaded_files, images = None, None
 
 # ============================================================
@@ -118,11 +96,11 @@ with col_usage:
     # 显示今日使用量
     if usage_info["can_use"]:
         st.metric(
-            label="今日剩余次数",
+            label=L("remaining_label"),
             value=f"{usage_info['remaining']}/{usage_info['limit']}",
         )
     else:
-        st.error(f"今日已用完 {usage_info['limit']} 次")
+        st.error(L("limit_reached", limit=usage_info["limit"]))
 
 with col_btn:
     if uploaded_files and images:
@@ -130,12 +108,12 @@ with col_btn:
         api_available, api_message = can_use_api()
 
         if not api_available:
-            st.warning(f"⚠️ {api_message}")
-            st.button("🚀 开始识别", use_container_width=True, disabled=True)
+            st.warning(L("api_limit_warning", message=api_message))
+            st.button(L("start_btn"), use_container_width=True, disabled=True)
         else:
-            if st.button("🚀 开始识别", use_container_width=True):
+            if st.button(L("start_btn"), use_container_width=True):
                 start_time = time.time()
-                with st.spinner(f"正在解析数学逻辑...（已上传 {len(images)} 张图片）"):
+                with st.spinner(L("recognition_spinner", count=len(images))):
                     result = run_ocr(images)
                     processing_time = round(time.time() - start_time, 2)
 
@@ -155,7 +133,7 @@ with col_btn:
                             },
                         )
 
-                        st.success("识别完成！")
+                        st.success(L("recognition_success"))
                         st.rerun()
                     else:
                         # 记录失败事件
@@ -169,7 +147,7 @@ with col_btn:
                             },
                         )
     else:
-        st.info("👆 上传图片进行 OCR 识别，或直接在下方编辑区输入 LaTeX 代码")
+        st.info(L("upload_prompt"))
 
 st.markdown("---")
 
@@ -183,15 +161,15 @@ with col2:
         render_latex_editor()
     except Exception as e:
         if Config.DEBUG_MODE:
-            st.error(f"编辑模块出错：{str(e)}")
+            st.error(f"Editor error: {str(e)}")
         else:
-            st.error("编辑器加载失败，请刷新页面重试")
+            st.error(L("error_editor"))
 
 with col3:
     try:
         render_preview_section()
     except Exception as e:
         if Config.DEBUG_MODE:
-            st.error(f"预览模块出错：{str(e)}")
+            st.error(f"Preview error: {str(e)}")
         else:
-            st.error("预览加载失败，请刷新页面重试")
+            st.error(L("error_preview"))

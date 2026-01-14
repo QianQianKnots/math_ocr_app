@@ -32,6 +32,7 @@ from streamlit_ace import st_ace
 
 from config import Config
 from latex_utils import parse_latex_blocks
+from lang import get_text
 
 # 模块公共接口
 __all__ = ["render_latex_editor"]
@@ -107,13 +108,15 @@ def render_latex_editor():
     渲染 LaTeX 代码编辑器。
     读取和写入 st.session_state.latex_output。
     """
+    L = get_text
+    
     # 标题和复制按钮在同一行
     col_title, col_copy = st.columns([8, 2])
     with col_title:
-        st.header("📝 LaTeX 代码")
+        st.header(L("editor_header"))
     with col_copy:
         # 始终显示复制按钮
-        if st.button("📋 复制", key="copy_latex_btn"):
+        if st.button(L("copy_btn"), key="copy_latex_btn"):
             if st.session_state.get("latex_output", "").strip():
                 st.session_state.show_copy_code = True
 
@@ -121,14 +124,14 @@ def render_latex_editor():
     if st.session_state.get("show_copy_code") and st.session_state.get(
         "latex_output", ""
     ):
-        st.info("👆 将鼠标悬停在下方代码框右上角，点击出现的复制图标即可复制")
+        st.info(L("copy_instruction"))
         st.code(st.session_state.latex_output, language="latex")
-        if st.button("收起", key="hide_copy_code"):
+        if st.button(L("collapse_btn"), key="hide_copy_code"):
             st.session_state.show_copy_code = False
             st.rerun()
 
     # 显示编辑提示
-    st.caption("💡 编辑器支持行号显示，修改后点击外部区域更新预览")
+    st.caption(L("editor_tip"))
 
     # 获取当前 LaTeX 内容
     current_latex = st.session_state.get("latex_output", "")
@@ -148,7 +151,7 @@ def render_latex_editor():
         show_print_margin=False,
         wrap=True,  # 自动换行
         key=editor_key,
-        placeholder="在此输入或编辑 LaTeX 代码...",
+        placeholder=L("editor_placeholder"),
     )
 
     # 更新 session_state（st_ace 返回值可能为 None）
@@ -158,7 +161,7 @@ def render_latex_editor():
 
     # 清除按钮
     if current_latex.strip():
-        if st.button("🗑️ 清除代码", key="clear_latex"):
+        if st.button(L("clear_btn"), key="clear_latex"):
             st.session_state.latex_output = ""
             st.session_state.show_copy_code = False
             st.rerun()
@@ -169,16 +172,11 @@ def render_latex_editor():
 
         if blocks:
             with st.expander(
-                f"📊 代码块索引 ({len(blocks)} 块) - 与右侧预览对应", expanded=False
+                L("block_index_title", count=len(blocks)), expanded=False
             ):
-                if is_full_doc:
-                    st.caption("⚠️ 检测到完整文档，索引基于提取后的内容")
-                else:
-                    st.caption("点击查看每个块对应的行号")
-
                 for block in blocks:
-                    block_type = (
-                        "📐 公式" if block["type"] == "environment" else "📝 文本"
+                    block_type_text = (
+                        f"📐 {L('block_formula')}" if block["type"] == "environment" else f"📝 {L('block_text')}"
                     )
                     col1, col2 = st.columns([1, 4])
                     with col1:
@@ -191,12 +189,12 @@ def render_latex_editor():
                     with col2:
                         # 单行显示"行 X"，多行显示"行 X-Y"
                         if block["start_line"] == block["end_line"]:
-                            line_info = f"行 {block['start_line']}"
+                            line_info = L("line_single", line=block["start_line"])
                         else:
-                            line_info = f"行 {block['start_line']}-{block['end_line']}"
+                            line_info = L("line_range", start=block["start_line"], end=block["end_line"])
                         st.markdown(
                             f"<span style='color: #666; font-size: 13px;'>"
-                            f"{block_type} · {line_info}</span>",
+                            f"{block_type_text} · {line_info}</span>",
                             unsafe_allow_html=True,
                         )
                     # 显示代码预览（截断）
@@ -207,4 +205,4 @@ def render_latex_editor():
 
         # 显示行数统计
         line_count = len(current_latex.split("\n"))
-        st.caption(f"📏 共 {line_count} 行")
+        st.caption(L("total_lines", count=line_count))

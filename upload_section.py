@@ -37,6 +37,7 @@ from image_utils import (
     validate_image,
     validate_file_size,
 )
+from lang import get_text
 
 if TYPE_CHECKING:
     from streamlit.runtime.uploaded_file_manager import UploadedFile
@@ -57,11 +58,12 @@ def render_upload_section() -> tuple[
         (ordered_files, ordered_images): 按用户调整后的顺序排列
         如果没有上传文件，返回 (None, None)
     """
-    st.header("📸 上传手稿")
+    L = get_text
+    st.header(L("upload_header"))
 
     max_files = Config.MAX_UPLOAD_FILES
     uploaded_files = st.file_uploader(
-        f"选择公式图片（最多{max_files}张，将按顺序拼接识别）",
+        L("upload_hint", max_files=max_files),
         type=Config.ALLOWED_EXTENSIONS,
         accept_multiple_files=True,
     )
@@ -69,7 +71,7 @@ def render_upload_section() -> tuple[
     # 限制最多上传数量
     if uploaded_files and len(uploaded_files) > max_files:
         st.warning(
-            f"最多只能上传{max_files}张图片，当前已选择{len(uploaded_files)}张，将只处理前{max_files}张"
+            L("upload_warning", max_files=max_files, current=len(uploaded_files))
         )
         uploaded_files = uploaded_files[:max_files]
 
@@ -112,7 +114,7 @@ def render_upload_section() -> tuple[
 
         if ordered_images:
             # 显示提示信息
-            st.caption("💡 提示：使用箭头按钮调整图片顺序")
+            st.caption(L("upload_tip"))
 
             # 显示所有图片的缩略图（支持按钮调整顺序）
             num_images = len(ordered_images)
@@ -147,16 +149,17 @@ def render_upload_section() -> tuple[
                         continue
 
                     # 显示缩略图（使用 HTML 显示固定尺寸的缩略图）
+                    img_label = f"{L('image_label')} {display_idx + 1}"
                     st.markdown(
                         f"""
                         <div style="text-align: center; margin-bottom: 10px;">
                             <div style="display: inline-block; border: 2px solid #e0e0e0; border-radius: 8px; padding: 4px; background: white;">
                                 <img src="data:image/jpeg;base64,{thumb_base64}" 
                                      style="max-width: 100%; max-height: 150px; display: block;"
-                                     alt="图片 {display_idx + 1}">
+                                     alt="{img_label}">
                                 <div style="position: relative; top: -24px; right: -80%; background: rgba(0,0,0,0.6); color: white; padding: 2px 6px; border-radius: 4px; font-size: 12px; display: inline-block;">{display_idx + 1}</div>
                             </div>
-                            <p style="margin-top: 4px; color: #666; font-size: 12px;">图片 {display_idx + 1}</p>
+                            <p style="margin-top: 4px; color: #666; font-size: 12px;">{img_label}</p>
                         </div>
                         """,
                         unsafe_allow_html=True,
@@ -191,7 +194,7 @@ def render_upload_section() -> tuple[
                         if st.button(
                             "↔️",
                             key=f"swap_{display_idx}",
-                            help="交换这两张图片的位置",
+                            help=L("swap_help"),
                             use_container_width=True,
                         ):
                             # 与右边位置交换
