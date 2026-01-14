@@ -121,21 +121,18 @@ def _build_prompt(num_images: int) -> str:
 def _call_api(payload: str, headers: dict) -> dict:
     """
     执行单次 API 调用
-    
+
     Args:
         payload: JSON 格式的请求体
         headers: 请求头
-    
+
     Returns:
         解析后的 JSON 响应
-    
+
     Raises:
         各种网络相关异常
     """
-    conn = http.client.HTTPSConnection(
-        Config.API_HOST, 
-        timeout=Config.API_TIMEOUT
-    )
+    conn = http.client.HTTPSConnection(Config.API_HOST, timeout=Config.API_TIMEOUT)
     conn.request("POST", Config.API_ENDPOINT, payload, headers)
     res = conn.getresponse()
     data = res.read()
@@ -144,59 +141,62 @@ def _call_api(payload: str, headers: dict) -> dict:
 
 
 def _call_api_with_retry(
-    payload: str, 
-    headers: dict, 
-    status_placeholder
+    payload: str, headers: dict, status_placeholder
 ) -> dict | None:
     """
     带重试机制的 API 调用
-    
+
     Args:
         payload: JSON 格式的请求体
         headers: 请求头
         status_placeholder: Streamlit 占位符，用于显示重试状态
-    
+
     Returns:
         成功时返回 JSON 响应，失败返回 None
     """
     last_error = None
-    
+
     logger.info(f"开始 API 调用，模型: {Config.API_MODEL}")
-    
+
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             # 显示当前尝试次数（第一次不显示）
             if attempt > 1:
                 logger.info(f"API 重试 {attempt}/{MAX_RETRIES}")
                 status_placeholder.info(f"🔄 第 {attempt}/{MAX_RETRIES} 次尝试...")
-            
+
             response_json = _call_api(payload, headers)
-            
+
             # 检查 API 返回的业务错误
             if "error" in response_json:
                 error_msg = response_json["error"].get("message", "未知错误")
-                
+
                 # 判断是否是可重试的错误（如限流）
-                if any(keyword in error_msg.lower() for keyword in ["rate limit", "quota", "overloaded", "busy"]):
+                if any(
+                    keyword in error_msg.lower()
+                    for keyword in ["rate limit", "quota", "overloaded", "busy"]
+                ):
                     if attempt < MAX_RETRIES:
                         wait_time = BASE_WAIT_TIME * (2 ** (attempt - 1))
-                        status_placeholder.warning(f"⏳ 服务繁忙，{wait_time} 秒后重试...")
+                        status_placeholder.warning(
+                            f"⏳ 服务繁忙，{wait_time} 秒后重试..."
+                        )
                         time.sleep(wait_time)
                         continue
-                
+
                 # 不可重试的业务错误
                 return response_json
-            
+
             # 成功
             logger.info(f"API 调用成功（第 {attempt} 次尝试）")
             if attempt > 1:
                 status_placeholder.success(f"✅ 第 {attempt} 次尝试成功！")
             return response_json
-            
+
         except RETRYABLE_EXCEPTIONS as e:
             last_error = e
             error_type = type(e).__name__
-            
+
             if attempt < MAX_RETRIES:
                 # 指数退避：2s, 4s, 8s
                 wait_time = BASE_WAIT_TIME * (2 ** (attempt - 1))
@@ -207,9 +207,11 @@ def _call_api_with_retry(
                 time.sleep(wait_time)
             else:
                 # 最后一次也失败了
-                logger.error(f"API 调用失败，已重试 {MAX_RETRIES} 次: {error_type}: {e}")
+                logger.error(
+                    f"API 调用失败，已重试 {MAX_RETRIES} 次: {error_type}: {e}"
+                )
                 status_placeholder.error(f"❌ 连接失败，已重试 {MAX_RETRIES} 次")
-                
+
         except json.JSONDecodeError as e:
             # JSON 解析错误，可能是响应不完整，可重试
             last_error = e
@@ -217,12 +219,12 @@ def _call_api_with_retry(
                 wait_time = BASE_WAIT_TIME * (2 ** (attempt - 1))
                 status_placeholder.warning(f"⚠️ 响应解析失败，{wait_time} 秒后重试...")
                 time.sleep(wait_time)
-            
+
         except Exception as e:
             # 其他不可重试的错误
             status_placeholder.error(f"❌ 发生错误: {type(e).__name__}: {str(e)}")
             return None
-    
+
     # 所有重试都失败
     if last_error:
         st.error(f"识别失败，请稍后重试。错误: {type(last_error).__name__}")
@@ -250,11 +252,13 @@ def run_ocr(images: list[Image.Image]) -> str | None:
         识别出的 LaTeX 代码，失败返回 None
     """
     logger.info(f"开始 OCR 识别，图片数量: {len(images)}")
-    
+
     # 拼接所有图片
     try:
         concatenated_image = concatenate_images(images)
-        logger.debug(f"图片拼接完成，尺寸: {concatenated_image.size if concatenated_image else 'None'}")
+        logger.debug(
+            f"图片拼接完成，尺寸: {concatenated_image.size if concatenated_image else 'None'}"
+        )
     except Exception as e:
         logger.error(f"图片拼接失败: {e}", exc_info=True)
         st.error(f"图片拼接失败：{str(e)}")
@@ -276,24 +280,26 @@ def run_ocr(images: list[Image.Image]) -> str | None:
 
     # 构建请求
     prompt = _build_prompt(len(images))
-    payload = json.dumps({
-        "model": Config.API_MODEL,
-        "stream": False,
-        "messages": [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": prompt},
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/jpeg;base64,{img_base64}"
+    payload = json.dumps(
+        {
+            "model": Config.API_MODEL,
+            "stream": False,
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{img_base64}"
+                            },
                         },
-                    },
-                ],
-            }
-        ],
-    })
+                    ],
+                }
+            ],
+        }
+    )
     headers = {
         "Accept": "application/json",
         "Authorization": f"Bearer {Config.get_api_key()}",
@@ -302,13 +308,13 @@ def run_ocr(images: list[Image.Image]) -> str | None:
 
     # 创建状态占位符（用于显示重试信息）
     status_placeholder = st.empty()
-    
+
     # 调用 API（带重试）
     response_json = _call_api_with_retry(payload, headers, status_placeholder)
-    
+
     # 清除状态信息
     status_placeholder.empty()
-    
+
     if response_json is None:
         return None
 

@@ -125,7 +125,9 @@ with col_btn:
                         # 识别成功，增加使用次数
                         increment_usage()
                         st.session_state.latex_output = result
-                        logger.info(f"用户 OCR 成功，图片数: {len(images)}，耗时: {processing_time}s")
+                        logger.info(
+                            f"用户 OCR 成功，图片数: {len(images)}，耗时: {processing_time}s"
+                        )
 
                         # 记录成功事件
                         log_event(

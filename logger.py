@@ -19,7 +19,7 @@
 
 使用方法：
     from logger import logger
-    
+
     logger.info("用户上传了 3 张图片")
     logger.debug(f"图片尺寸: {image.size}")
     logger.error("API 调用失败", exc_info=True)
@@ -30,7 +30,6 @@
 
 import logging
 import sys
-import os
 from pathlib import Path
 from datetime import datetime, timedelta
 from logging.handlers import TimedRotatingFileHandler
@@ -48,16 +47,16 @@ DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
 def _cleanup_old_logs(log_dir: Path, days: int = 7):
     """
     清理旧日志文件
-    
+
     Args:
         log_dir: 日志目录
         days: 保留天数
     """
     if not log_dir.exists():
         return
-    
+
     cutoff = datetime.now() - timedelta(days=days)
-    
+
     for log_file in log_dir.glob("*.log*"):
         try:
             # 检查文件修改时间
@@ -75,60 +74,60 @@ def setup_logger(
 ) -> logging.Logger:
     """
     配置并返回 logger 实例
-    
+
     Args:
         name: logger 名称
         console_level: 控制台输出级别
         file_level: 文件输出级别
-    
+
     Returns:
         配置好的 Logger 实例
     """
     logger = logging.getLogger(name)
-    
+
     # 避免重复配置
     if logger.handlers:
         return logger
-    
+
     logger.setLevel(logging.DEBUG)  # 设置最低级别，具体由 handler 控制
-    
+
     # 创建格式器
     formatter = logging.Formatter(LOG_FORMAT, DATE_FORMAT)
-    
+
     # ==================== 控制台 Handler ====================
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(console_level)
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
-    
+
     # ==================== 文件 Handler ====================
     try:
         # 创建日志目录
         LOG_DIR.mkdir(exist_ok=True)
-        
+
         # 清理旧日志
         _cleanup_old_logs(LOG_DIR)
-        
+
         # 日志文件路径
         log_file = LOG_DIR / "app.log"
-        
+
         # 使用 TimedRotatingFileHandler，每天轮转，保留 7 天
         file_handler = TimedRotatingFileHandler(
             log_file,
-            when="midnight",      # 每天午夜轮转
-            interval=1,           # 间隔 1 天
-            backupCount=7,        # 保留 7 个备份
+            when="midnight",  # 每天午夜轮转
+            interval=1,  # 间隔 1 天
+            backupCount=7,  # 保留 7 个备份
             encoding="utf-8",
         )
         file_handler.setLevel(file_level)
         file_handler.setFormatter(formatter)
         file_handler.suffix = "%Y-%m-%d"  # 备份文件后缀格式
         logger.addHandler(file_handler)
-        
+
     except Exception as e:
         # 文件 handler 创建失败，只用控制台
         logger.warning(f"无法创建日志文件: {e}")
-    
+
     return logger
 
 
@@ -138,10 +137,13 @@ logger = setup_logger()
 
 # ==================== 便捷函数 ====================
 
-def log_api_call(endpoint: str, success: bool, duration: float = None, error: str = None):
+
+def log_api_call(
+    endpoint: str, success: bool, duration: float = None, error: str = None
+):
     """
     记录 API 调用
-    
+
     Args:
         endpoint: API 端点
         success: 是否成功
@@ -163,7 +165,7 @@ def log_api_call(endpoint: str, success: bool, duration: float = None, error: st
 def log_user_action(action: str, details: dict = None):
     """
     记录用户操作
-    
+
     Args:
         action: 操作类型
         details: 详细信息
@@ -178,12 +180,12 @@ def log_user_action(action: str, details: dict = None):
 def log_error(error: Exception, context: str = None):
     """
     记录错误（带堆栈）
-    
+
     Args:
         error: 异常对象
         context: 上下文描述
     """
-    msg = f"错误发生"
+    msg = "错误发生"
     if context:
         msg += f" [{context}]"
     msg += f": {type(error).__name__}: {str(error)}"
