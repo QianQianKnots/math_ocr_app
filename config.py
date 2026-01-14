@@ -91,7 +91,7 @@ class Config:
     API_HOST: str = "api.302.ai"
     API_ENDPOINT: str = "/v1/chat/completions"
     API_MODEL: str = "gemini-2.5-flash"
-    API_TIMEOUT: int = 120  # API 调用超时（秒）
+    API_TIMEOUT: int = 240  # API 调用超时（秒）
     DAILY_API_LIMIT: int = 50  # 每日 API 调用次数上限
 
     # ==================== PDF 配置 ====================
