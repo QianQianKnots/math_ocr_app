@@ -22,6 +22,7 @@ from preview_section import render_preview_section
 from usage_tracker import can_use_api, get_usage_info, increment_usage
 from analytics import log_event, ANALYTICS_ENABLED
 from lang import get_text, render_language_selector
+from logger import logger
 
 # ============================================================
 # 页面配置
@@ -64,9 +65,12 @@ if ANALYTICS_ENABLED:
 # ============================================================
 api_valid, api_error = Config.validate_api_key()
 if not api_valid:
+    logger.error(f"API 密钥验证失败: {api_error}")
     st.error(L("error_config", error=api_error))
     st.info(L("error_config_hint"))
     st.stop()
+
+logger.debug("应用启动，API 密钥验证通过")
 
 # ============================================================
 # 初始化 session_state
@@ -121,6 +125,7 @@ with col_btn:
                         # 识别成功，增加使用次数
                         increment_usage()
                         st.session_state.latex_output = result
+                        logger.info(f"用户 OCR 成功，图片数: {len(images)}，耗时: {processing_time}s")
 
                         # 记录成功事件
                         log_event(

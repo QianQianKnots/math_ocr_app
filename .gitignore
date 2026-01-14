@@ -59,11 +59,14 @@ Thumbs.db
 desktop.ini
 
 # ---------- 临时文件 ----------
-*.log
 *.tmp
 *.temp
 *.bak
 *.cache
+
+# ---------- 日志文件 ----------
+logs/
+*.log
 
 # ---------- 测试产生的文件 ----------
 .coverage

@@ -15,6 +15,9 @@ Pillow>=10.0.0
 # ---------- 环境变量管理 ----------
 python-dotenv>=1.0.0
 
+# ---------- 测试框架（开发用）----------
+pytest>=7.0.0
+
 # ---------- 可选：PDF 生成需要系统安装 LaTeX ----------
 # Windows: 安装 MiKTeX (https://miktex.org/)
 # macOS: brew install --cask mactex

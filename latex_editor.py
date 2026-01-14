@@ -109,7 +109,7 @@ def render_latex_editor():
     读取和写入 st.session_state.latex_output。
     """
     L = get_text
-    
+
     # 标题和复制按钮在同一行
     col_title, col_copy = st.columns([8, 2])
     with col_title:
@@ -171,12 +171,12 @@ def render_latex_editor():
         blocks = parse_latex_blocks(processed_latex)
 
         if blocks:
-            with st.expander(
-                L("block_index_title", count=len(blocks)), expanded=False
-            ):
+            with st.expander(L("block_index_title", count=len(blocks)), expanded=False):
                 for block in blocks:
                     block_type_text = (
-                        f"📐 {L('block_formula')}" if block["type"] == "environment" else f"📝 {L('block_text')}"
+                        f"📐 {L('block_formula')}"
+                        if block["type"] == "environment"
+                        else f"📝 {L('block_text')}"
                     )
                     col1, col2 = st.columns([1, 4])
                     with col1:
@@ -191,7 +191,11 @@ def render_latex_editor():
                         if block["start_line"] == block["end_line"]:
                             line_info = L("line_single", line=block["start_line"])
                         else:
-                            line_info = L("line_range", start=block["start_line"], end=block["end_line"])
+                            line_info = L(
+                                "line_range",
+                                start=block["start_line"],
+                                end=block["end_line"],
+                            )
                         st.markdown(
                             f"<span style='color: #666; font-size: 13px;'>"
                             f"{block_type_text} · {line_info}</span>",
